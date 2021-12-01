@@ -6,9 +6,12 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
 import android.content.Context;
+import android.os.Handler;
+import android.os.Message;
 import android.util.Log;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.UUID;
 
 public class ConexionServicioBluetooth {
@@ -24,6 +27,10 @@ public class ConexionServicioBluetooth {
     private ConectarHilo miconexionhilo;
     private BluetoothDevice midispositivo;
     private UUID dispositivoUUID;
+    private InputStream mmInStream;
+    private Handler handler; //obtiene información del dispositivo que se ha conectado
+
+
 
     private final BluetoothAdapter adaptadorBluetooth;
     Context micontexto;
@@ -135,5 +142,34 @@ public class ConexionServicioBluetooth {
             }
 
         }
+
+        @SuppressLint("LongLogTag")
+        public void run() {
+            byte[] mmBuffer = new byte[1024];
+            int numBytes; //bytes que devuelve el read();
+
+            //sigue escuchando el input hasta que haya una excepción
+            while (true) {
+                try {
+                    //lee el input
+                    numBytes = mmInStream.read(mmBuffer);
+                    //envia la informacion recibida a la actividad principal
+                    Message readMsg = handler.obtainMessage(
+                            MessageConstants.MESSAGE_READ, numBytes, -1,
+                            mmBuffer);
+                    readMsg.sendToTarget();
+                } catch (IOException e) {
+                    Log.d(TAG, "El dispositivo de entrada esta desconectado", e);
+                    break;
+                }
+            }
+        }
     }
+
+    //constantes para saber qué acción hacemos en cada momento de enviar mensajes
+    private interface MessageConstants {
+        public static final int MESSAGE_READ = 0;
+    }
+
+
 }
